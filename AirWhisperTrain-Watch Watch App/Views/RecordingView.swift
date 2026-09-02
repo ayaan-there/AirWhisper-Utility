@@ -71,7 +71,7 @@ struct RecordingView: View {
         guard let letter = connectivity.currentLetter else { return }
         guard recorder.isDeviceMotionAvailable else { return }
         elapsed = 0
-        recorder.startRecording()
+        recorder.startRecording(letter: letter, expectedIndex: connectivity.expectedIndex)
     }
 
     private func stopAndSend() {

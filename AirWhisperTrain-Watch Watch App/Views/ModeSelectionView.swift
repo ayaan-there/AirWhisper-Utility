@@ -44,7 +44,7 @@ struct ModeSelectionView: View {
                     }
                     .padding()
                     .frame(maxWidth: .infinity)
-                    .background(Color(.systemBackground))
+                    .background(Color.black)
                     .clipShape(.rect(cornerRadius: 16))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
@@ -77,7 +77,7 @@ struct ModeSelectionView: View {
                     }
                     .padding()
                     .frame(maxWidth: .infinity)
-                    .background(Color(.systemBackground))
+                    .background(Color.black)
                     .clipShape(.rect(cornerRadius: 16))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
