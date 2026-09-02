@@ -1,0 +1,124 @@
+name: iOS Build & Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Build iOS & watchOS
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: List available SDKs
+        run: xcodebuild -showsdks
+
+      - name: Build iOS App
+        run: |
+          xcodebuild build \
+            -project AirWhisperTrain.xcodeproj \
+            -scheme AirWhisperTrain \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            -configuration Debug \
+            ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
+
+      - name: Build watchOS App
+        run: |
+          xcodebuild build \
+            -project AirWhisperTrain.xcodeproj \
+            -scheme AirWhisperTrain \
+            -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (45mm),OS=latest' \
+            -configuration Debug \
+            ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
+
+      - name: Build for testing
+        run: |
+          xcodebuild build-for-testing \
+            -project AirWhisperTrain.xcodeproj \
+            -scheme AirWhisperTrain \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            -configuration Debug \
+            ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
+
+      - name: Run unit tests
+        run: |
+          xcodebuild test-without-building \
+            -project AirWhisperTrain.xcodeproj \
+            -scheme AirWhisperTrain \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            -configuration Debug \
+            ONLY_ACTIVE_ARCH=YES \
+            | xcpretty
+
+      - name: Upload build artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-logs
+          path: ~/Library/Logs/DiagnosticReports/
+          retention-days: 7
+
+  swift-lint:
+    name: SwiftLint
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SwiftLint
+        run: brew install swiftlint
+      - name: Run SwiftLint
+        run: swiftlint lint --strict --path .
+
+  windows-syntax-check:
+    name: Swift Syntax Check (Windows compatible)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '5.10'
+      - name: Check Swift syntax
+        run: |
+          # Parse all Swift files to verify syntax
+          $swiftFiles = Get-ChildItem -Recurse -Filter "*.swift" -File
+          foreach ($file in $swiftFiles) {
+            Write-Host "Checking $($file.FullName)..."
+            swiftc -parse "$($file.FullName)" 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Syntax error in $($file.FullName)"
+              exit 1
+            }
+          }
+          Write-Host "All Swift files parsed successfully!"
+
+  create-release:
+    name: Create Release
+    needs: [build-and-test, swift-lint, windows-syntax-check]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          draft: false
+          prerelease: false
