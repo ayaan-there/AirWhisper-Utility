@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct AirWhisperTrainApp: App {
+    @StateObject private var model = AppModel.shared
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(model)
         }
     }
 }

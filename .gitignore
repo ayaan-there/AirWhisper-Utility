@@ -1,0 +1,45 @@
+# Build artifacts
+build/
+DerivedData/
+*.xcarchive
+*.ipa
+
+# Xcode user data
+*.xcuserstate
+project.xcworkspace/
+xcuserdata/
+
+# macOS
+.DS_Store
+
+# Swift Package Manager
+.build/
+Packages/
+Package.resolved
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# Server codebase - excluded from this repo
+Server/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Test results
+*.xctestresult
