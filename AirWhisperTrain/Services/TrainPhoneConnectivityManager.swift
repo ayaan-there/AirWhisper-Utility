@@ -72,7 +72,7 @@ final class TrainPhoneConnectivityManager: NSObject, ObservableObject {
             print("TrainPhone: context skipped (session not activated), will resend on activation")
             return
         }
-        var ctx: [String: Any] = [self.contextKey: ["letter": currentLetter as Any, "count": latestContextCount]]
+        let ctx: [String: Any] = [self.contextKey: ["letter": currentLetter as Any, "count": latestContextCount]]
         do {
             try session.updateApplicationContext(ctx)
             print("TrainPhone: pushed context letter=\(currentLetter ?? "nil") count=\(latestContextCount)")
@@ -146,7 +146,7 @@ final class TrainPhoneConnectivityManager: NSObject, ObservableObject {
     }
 
     private func handleSendFailure(messageId: UUID, error: Error) {
-        guard var pending = pendingMessages[messageId] else { return }
+        guard let pending = pendingMessages[messageId] else { return }
 
         print("TrainPhone: send failed (attempt \(pending.retryCount + 1)/\(maxRetries)): \(error)")
 
@@ -177,7 +177,7 @@ final class TrainPhoneConnectivityManager: NSObject, ObservableObject {
     }
 
     private func retrySend(messageId: UUID, retryCount: Int) async {
-        guard var pending = pendingMessages[messageId] else { return }
+        guard let pending = pendingMessages[messageId] else { return }
         let session = WCSession.default
 
         guard session.isReachable else {

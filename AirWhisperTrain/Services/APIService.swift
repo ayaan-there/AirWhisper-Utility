@@ -187,7 +187,7 @@ final class APIService {
         request.setValue("Bearer \(adminToken)", forHTTPHeaderField: "Authorization")
         request.httpBody = try encoder.encode(ConfigUpdate(config: config))
 
-        let (data, response) = try await session.data(for: request)
+        let (_, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
             throw APIError.invalidResponse
         }

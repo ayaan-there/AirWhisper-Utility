@@ -137,7 +137,7 @@ struct RecordingsListView: View {
                 Task {
                     do {
                         for id in ids {
-                            try await APIService.shared.deleteSample(
+                            _ = try await APIService.shared.deleteSample(
                                 letter: letter,
                                 sampleId: id.uuidString,
                                 adminToken: AppConfig.adminToken
@@ -325,7 +325,7 @@ struct RecordingsListView: View {
         defer { isSending = false }
 
         do {
-            let total = recordings.count
+            _ = recordings.count
             for (index, rec) in recordings.enumerated() {
                 // Extract 15-feature vectors from recording samples
                 let features = MotionSample.extractFeatures(from: rec.samples)

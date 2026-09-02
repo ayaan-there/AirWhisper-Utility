@@ -228,7 +228,7 @@ enum IMUCSVImporter {
 
     // MARK: - Sample mapping
 
-    private static func makeSample(_ row: [String: String]) -> MotionSample {
+    nonisolated private static func makeSample(_ row: [String: String]) -> MotionSample {
         MotionSample(
             timestamp: seconds(row),
             rotationRateX: number(row, "rotationRateX"),
@@ -249,7 +249,7 @@ enum IMUCSVImporter {
 
     // MARK: - Helpers
 
-    private static func seconds(_ row: [String: String]) -> Double {
+    nonisolated private static func seconds(_ row: [String: String]) -> Double {
         number(row, "seconds_elapsed")
     }
 
@@ -335,7 +335,7 @@ extension IMUCSVImporter {
         }
 
         // Use system unzip command (available on iOS)
-        let process = Process()
+        let process = Foundation.Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
         process.arguments = ["-o", zipURL.path, "-d", tempDir.path]
         try process.run()

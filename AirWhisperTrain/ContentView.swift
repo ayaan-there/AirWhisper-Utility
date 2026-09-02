@@ -113,8 +113,6 @@ struct AlphabetGridContent: View {
 
     private func letterCell(_ letter: String) -> some View {
         let localCount = model.store.recordings(for: letter).count
-        let isComplete = localCount >= RecordingStore.maxPerLetter
-        let canSend = localCount >= 25
 
         return VStack(spacing: 6) {
             Text(letter)
