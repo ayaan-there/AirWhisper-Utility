@@ -87,7 +87,7 @@ jobs:
           export HOMEBREW_NO_REQUIRE_TAP_TRUST=1
           brew install swiftlint
       - name: Run SwiftLint
-        run: swiftlint lint --strict --path .
+        run: swiftlint lint --strict .
 
   windows-syntax-check:
     name: Swift Syntax Check (Windows compatible)
@@ -97,7 +97,7 @@ jobs:
       - name: Install Swift
         uses: swift-actions/setup-swift@v2
         with:
-          swift-version: '6.0'
+          swift-version: '5.10'
       - name: Check Swift syntax
         run: |
           # Parse all Swift files to verify syntax
