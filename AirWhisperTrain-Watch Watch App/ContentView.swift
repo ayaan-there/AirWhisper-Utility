@@ -1,8 +1,8 @@
 import SwiftUI
 import Observation
 
-// Watch app constants
-private enum WatchConstants {
+// Watch app constants - shared across all Watch views
+enum WatchConstants {
     static let maxSamplesPerLetter = 100
     static let expectedSamplesPerLetter = 40
     static let timerInterval: TimeInterval = 0.1
@@ -30,8 +30,10 @@ struct ContentView: View {
     init() {
         let trainRecorder = AirWriteMotionRecorder()
         let testRecorder = AirWriteMotionRecorder()
+        let inferenceService = InferenceService()
         _trainViewModel = State(initialValue: TrainViewModel(connectivity: TrainWatchConnectivityClient.shared, recorder: trainRecorder))
-        _testViewModel = State(initialValue: TestViewModel(recorder: testRecorder, inferenceService: InferenceService()))
+        _testViewModel = State(initialValue: TestViewModel(recorder: testRecorder, inferenceService: inferenceService))
+        _inferenceService = State(initialValue: inferenceService)
     }
     
     var body: some View {
