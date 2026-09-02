@@ -30,7 +30,7 @@ jobs:
           xcodebuild build \
             -project AirWhisperTrain.xcodeproj \
             -scheme AirWhisperTrain \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
             -configuration Debug \
             ONLY_ACTIVE_ARCH=YES \
             CODE_SIGNING_ALLOWED=NO \
@@ -41,7 +41,7 @@ jobs:
           xcodebuild build \
             -project AirWhisperTrain.xcodeproj \
             -scheme AirWhisperTrain \
-            -destination 'platform=watchOS Simulator,name=Apple Watch Series 10 (46mm),OS=latest' \
+            -destination 'platform=watchOS Simulator,name=Apple Watch Series 11 (46mm),OS=latest' \
             -configuration Debug \
             ONLY_ACTIVE_ARCH=YES \
             CODE_SIGNING_ALLOWED=NO \
@@ -52,7 +52,7 @@ jobs:
           xcodebuild build-for-testing \
             -project AirWhisperTrain.xcodeproj \
             -scheme AirWhisperTrain \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
             -configuration Debug \
             ONLY_ACTIVE_ARCH=YES \
             CODE_SIGNING_ALLOWED=NO \
@@ -60,10 +60,10 @@ jobs:
 
       - name: Run unit tests
         run: |
-          xcodebuild test-without-building \
+          xcodebuild test \
             -project AirWhisperTrain.xcodeproj \
             -scheme AirWhisperTrain \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
             -configuration Debug \
             ONLY_ACTIVE_ARCH=YES \
             CODE_SIGNING_ALLOWED=NO \
