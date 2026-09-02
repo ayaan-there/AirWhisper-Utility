@@ -41,7 +41,7 @@ jobs:
           xcodebuild build \
             -project AirWhisperTrain.xcodeproj \
             -scheme AirWhisperTrain \
-            -destination 'platform=watchOS Simulator,name=Apple Watch Series 11 (46mm),OS=latest' \
+            -destination 'platform=watchOS Simulator,OS=latest' \
             -configuration Debug \
             ONLY_ACTIVE_ARCH=YES \
             CODE_SIGNING_ALLOWED=NO \

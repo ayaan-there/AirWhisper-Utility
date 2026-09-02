@@ -148,7 +148,7 @@ final class APIService {
     /// Fetch per-class sample counts from the server.
     func fetchServerCounts() async throws -> ServerCountsResponse {
         let url = URL(string: "\(Self.baseURL)/samples/counts")!
-        let (data, response) = try await session.data(from: URL(string: "\(Self.baseURL)/samples/counts")!)
+        let (data, response) = try await session.data(from: url)
         guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
             throw APIError.invalidResponse
         }
@@ -159,7 +159,8 @@ final class APIService {
 
     /// Fetch current training status (epoch, loss, val_acc, ETA).
     func fetchTrainingStatus() async throws -> TrainStatusResponse {
-        let (data, response) = try await session.data(from: URL(string: "\(Self.baseURL)/train/status")!)
+        let url = URL(string: "\(Self.baseURL)/train/status")!
+        let (data, response) = try await session.data(from: url)
         guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
             throw APIError.invalidResponse
         }
@@ -170,7 +171,8 @@ final class APIService {
 
     /// Fetch current training configuration.
     func fetchConfig() async throws -> TrainConfig {
-        let (data, response) = try await session.data(from: URL(string: "\(Self.baseURL)/config")!)
+        let url = URL(string: "\(Self.baseURL)/config")!
+        let (data, response) = try await session.data(from: url)
         guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
             throw APIError.invalidResponse
         }
@@ -207,14 +209,15 @@ final class APIService {
     // MARK: - Trigger Check
 
     func checkTriggerConditions() async throws -> TriggerCheckResponse {
-        let (data, response) = try await session.data(from: URL(string: "\(Self.baseURL)/trigger/check")!)
+        let url = URL(string: "\(Self.baseURL)/trigger/check")!
+        let (data, response) = try await session.data(from: url)
         guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
             throw APIError.invalidResponse
         }
         return try decoder.decode(TriggerCheckResponse.self, from: data)
     }
 
-// MARK: - Preprocessed Sample Upload (New)
+    // MARK: - Preprocessed Sample Upload (New)
 
     /// Upload preprocessed features directly (bypasses server-side preprocessing).
     /// - Parameters:
@@ -239,6 +242,33 @@ final class APIService {
         )
         request.httpBody = try encoder.encode(payload)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
+            let msg = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw APIError.serverError(httpResponse.statusCode, msg)
+        }
+
+        return try decoder.decode(SampleUploadResponse.self, from: data)
+    }
+
+    // MARK: - Delete Sample
+
+    /// Delete a specific sample by ID for a given letter.
+    /// - Parameters:
+    ///   - letter: Target letter (A-Z)
+    ///   - sampleId: Sample ID to delete
+    ///   - adminToken: Admin token for authorization
+    /// - Returns: Server response with updated counts
+    func deleteSample(
+        letter: String,
+        sampleId: String,
+        adminToken: String
+    ) async throws -> SampleUploadResponse {
+        let url = URL(string: "\(Self.baseURL)/samples/\(letter.uppercased())/\(sampleId)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(adminToken)", forHTTPHeaderField: "Authorization")
 
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
@@ -384,76 +414,20 @@ struct TriggerCheckResponse: Codable {
     let thresholds: TriggerConfig
 }
 
-struct SampleUploadResponse: Codable {
-    let accepted: Bool
-    let serverCount: Int
-    let globalCount: Int
-    let message: String
+// MARK: - Preprocessed Sample Types
+
+struct PreprocessedSampleMetadata: Codable {
+    let posture: String
+    let modelVersion: Int
+    let appVersion: String
+    let timestamp: String
+    let deviceId: String
 }
 
-struct ServerCountsResponse: Codable {
-    let perClass: [String: Int]
-    let total: Int
-    let capPerClass: Int
-    let deficit: [String: Int]
-}
-
-struct TrainConfig: Codable {
-    let trigger: TriggerConfig
-    let training: TrainingConfig
-    let augment: AugmentConfig
-    let dpHead: DPHeadConfig
-    let oversample: OversampleConfig
-    let dataset: DatasetConfig
-    let server: ServerConfig
-}
-
-struct TrainStatusResponse: Codable {
-    let state: String
-    let epoch: Int
-    let totalEpochs: Int
-    let loss: Float?
-    let valAcc: Float?
-    let valLoss: Float?
-    let etaSec: Int
-    let startedAt: String?
-    let finishedAt: String?
-    let error: String?
-}
-
-struct TriggerCheckResponse: Codable {
-    let shouldTrigger: Bool
-    let reason: String
-    let counts: [String: Int]
-    let total: Int
-    let thresholds: TriggerConfig
-}
-
-// MARK: - Delete Sample
-
-/// Delete a specific sample by ID for a given letter.
-/// - Parameters:
-///   - letter: Target letter (A-Z)
-///   - sampleId: Sample ID to delete
-///   - adminToken: Admin token for authorization
-/// - Returns: Server response with updated counts
-func deleteSample(
-    letter: String,
-    sampleId: String,
-    adminToken: String
-) async throws -> SampleUploadResponse {
-    let url = URL(string: "\(Self.baseURL)/samples/\(letter.uppercased())/\(sampleId)")!
-    var request = URLRequest(url: url)
-    request.httpMethod = "DELETE"
-    request.setValue("Bearer \(adminToken)", forHTTPHeaderField: "Authorization")
-
-    let (data, response) = try await session.data(for: request)
-    guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
-        let msg = String(data: data, encoding: .utf8) ?? "Unknown error"
-        throw APIError.serverError(httpResponse.statusCode, msg)
-    }
-
-    return try decoder.decode(SampleUploadResponse.self, from: data)
+struct PreprocessedSamplePayload: Codable {
+    let letter: String
+    let features: [Float]
+    let metadata: PreprocessedSampleMetadata
 }
 
 extension Data {

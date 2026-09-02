@@ -7,9 +7,6 @@ struct MotionSample: Codable, Equatable, Hashable {
     let rotationRateY: Double
     let rotationRateZ: Double
     let gravityX: Double
-    let rotationRateY: Double
-    let rotationRateZ: Double
-    let gravityX: Double
     let gravityY: Double
     let gravityZ: Double
     let accelerationX: Double
