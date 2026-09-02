@@ -1,4 +1,5 @@
 import Foundation
+import Compression
 
 /// Swift port of the reference `airwhisper_imu_visualizer.html` CSV ingestion.
 /// Mirrors `parseCsv` -> `cleanRawRows` -> `trimTrailingGapTail` -> `medianDt`
@@ -253,7 +254,7 @@ enum IMUCSVImporter {
         number(row, "seconds_elapsed")
     }
 
-    private static func number(_ row: [String: String], _ name: String) -> Double {
+    nonisolated private static func number(_ row: [String: String], _ name: String) -> Double {
         guard let raw = row[name], let value = Double(raw), value.isFinite else { return 0 }
         return value
     }
@@ -323,38 +324,11 @@ extension IMUCSVImporter {
     /// Preprocess a raw IMU CSV zip file into the 15-feature format expected by the server.
     /// Returns a flat Float32 array of 384 * 15 = 5760 elements ready for JSON upload.
     ///
-    /// Note: This version uses the system `unzip` command (available on iOS).
-    /// For production, consider adding ZIPFoundation via SPM for robust ZIP handling.
     static func preprocessZipToFeatures(zipURL: URL) throws -> [Float] {
-        let tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("AirWhisperPreprocess_\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-
-        defer {
-            try? FileManager.default.removeItem(at: tempDir)
-        }
-
-        // Use system unzip command (available on iOS)
-        let process = Foundation.Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-        process.arguments = ["-o", zipURL.path, "-d", tempDir.path]
-        try process.run()
-        process.waitUntilExit()
-
-        guard process.terminationStatus == 0 else {
-            throw ParseError(message: "Failed to unzip file (exit code: \(process.terminationStatus))")
-        }
-
-        // Find CSV file
-        let csvFiles = try FileManager.default.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: nil)
-            .filter { $0.pathExtension.lowercased() == "csv" }
-        guard let csvFile = csvFiles.first else {
-            throw ParseError(message: "No CSV file found in zip")
-        }
-
-        // Read and parse CSV
-        let text = try String(contentsOf: csvFile, encoding: .utf8)
-        let result = try importCSV(text, fileName: csvFile.lastPathComponent)
+        let archive = try Data(contentsOf: zipURL)
+        let csvData = try csvData(from: archive)
+        let text = String(decoding: csvData, as: UTF8.self)
+        let result = try importCSV(text, fileName: zipURL.lastPathComponent)
 
         // Use the same feature engineering as the reference (Stage 9 equivalent)
         let samples = result.samples
@@ -404,4 +378,121 @@ extension IMUCSVImporter {
         // Flatten to [384 * 15]
         return featureMatrix.flatMap { $0 }
     }
+
+    private static func csvData(from archive: Data) throws -> Data {
+        guard let endOfCentralDirectory = findEndOfCentralDirectory(in: archive) else {
+            throw ParseError(message: "Invalid ZIP archive")
+        }
+
+        guard let entryCount = uint16(in: archive, at: endOfCentralDirectory + 10),
+              let centralDirectoryOffset = uint32(in: archive, at: endOfCentralDirectory + 16) else {
+            throw ParseError(message: "Invalid ZIP directory")
+        }
+
+        var offset = Int(centralDirectoryOffset)
+        for _ in 0..<Int(entryCount) {
+            guard uint32(in: archive, at: offset) == 0x02014b50,
+                  let compression = uint16(in: archive, at: offset + 10),
+                  let compressedSize = uint32(in: archive, at: offset + 20),
+                  let uncompressedSize = uint32(in: archive, at: offset + 24),
+                  let nameLength = uint16(in: archive, at: offset + 28),
+                  let extraLength = uint16(in: archive, at: offset + 30),
+                  let commentLength = uint16(in: archive, at: offset + 32),
+                  let localHeaderOffset = uint32(in: archive, at: offset + 42) else {
+                throw ParseError(message: "Invalid ZIP entry")
+            }
+
+            let nameStart = offset + 46
+            let nameEnd = nameStart + Int(nameLength)
+            guard nameEnd <= archive.count,
+                  let entryName = String(data: archive.subdata(in: nameStart..<nameEnd), encoding: .utf8) else {
+                throw ParseError(message: "Invalid ZIP entry name")
+            }
+
+            if entryName.lowercased().hasSuffix(".csv") {
+                return try extractEntry(
+                    from: archive,
+                    compression: compression,
+                    compressedSize: Int(compressedSize),
+                    uncompressedSize: Int(uncompressedSize),
+                    localHeaderOffset: Int(localHeaderOffset)
+                )
+            }
+
+            offset = nameEnd + Int(extraLength) + Int(commentLength)
+        }
+
+        throw ParseError(message: "No CSV file found in zip")
+    }
+
+    private static func extractEntry(
+        from archive: Data,
+        compression: UInt16,
+        compressedSize: Int,
+        uncompressedSize: Int,
+        localHeaderOffset: Int
+    ) throws -> Data {
+        guard uint32(in: archive, at: localHeaderOffset) == 0x04034b50,
+              let nameLength = uint16(in: archive, at: localHeaderOffset + 26),
+              let extraLength = uint16(in: archive, at: localHeaderOffset + 28) else {
+            throw ParseError(message: "Invalid ZIP local header")
+        }
+
+        let dataStart = localHeaderOffset + 30 + Int(nameLength) + Int(extraLength)
+        let dataEnd = dataStart + compressedSize
+        guard dataStart >= 0, dataEnd <= archive.count else {
+            throw ParseError(message: "Invalid ZIP entry data")
+        }
+        let compressedData = archive.subdata(in: dataStart..<dataEnd)
+
+        switch compression {
+        case 0:
+            return compressedData
+        case 8:
+            // ZIP stores a raw DEFLATE stream. Compression's zlib decoder also
+            // accepts this format and is available on iOS, unlike Process/unzip.
+            var output = [UInt8](repeating: 0, count: uncompressedSize)
+            let decodedSize = compressedData.withUnsafeBytes { inputBuffer in
+                output.withUnsafeMutableBytes { outputBuffer in
+                    compression_decode_buffer(
+                        outputBuffer.bindMemory(to: UInt8.self).baseAddress!,
+                        outputBuffer.count,
+                        inputBuffer.bindMemory(to: UInt8.self).baseAddress!,
+                        inputBuffer.count,
+                        nil,
+                        COMPRESSION_ZLIB
+                    )
+                }
+            }
+            guard decodedSize == uncompressedSize else {
+                throw ParseError(message: "ZIP entry size mismatch")
+            }
+            return Data(output)
+        default:
+            throw ParseError(message: "Unsupported ZIP compression method: \(compression)")
+        }
+    }
+
+    private static func findEndOfCentralDirectory(in data: Data) -> Int? {
+        guard data.count >= 22 else { return nil }
+        let start = max(0, data.count - 22 - 65_535)
+        for offset in stride(from: data.count - 22, through: start, by: -1) {
+            if uint32(in: data, at: offset) == 0x06054b50 { return offset }
+        }
+        return nil
+    }
+
+    private static func uint16(in data: Data, at offset: Int) -> UInt16? {
+        guard offset >= 0, offset + 2 <= data.count else { return nil }
+        return UInt16(data[offset]) | (UInt16(data[offset + 1]) << 8)
+    }
+
+    private static func uint32(in data: Data, at offset: Int) -> UInt32? {
+        guard offset >= 0, offset + 4 <= data.count else { return nil }
+        return UInt32(data[offset]) |
+            (UInt32(data[offset + 1]) << 8) |
+            (UInt32(data[offset + 2]) << 16) |
+            (UInt32(data[offset + 3]) << 24)
+    }
+
 }
