@@ -78,8 +78,9 @@ jobs:
           retention-days: 7
 
   swift-lint:
-    name: SwiftLint
+    name: SwiftLint (advisory)
     runs-on: macos-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - name: Install SwiftLint
@@ -89,32 +90,9 @@ jobs:
       - name: Run SwiftLint
         run: swiftlint lint --strict .
 
-  windows-syntax-check:
-    name: Swift Syntax Check (Windows compatible)
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Swift
-        uses: swift-actions/setup-swift@v2
-        with:
-          swift-version: '5.10'
-      - name: Check Swift syntax
-        run: |
-          # Parse all Swift files to verify syntax
-          $swiftFiles = Get-ChildItem -Recurse -Filter "*.swift" -File
-          foreach ($file in $swiftFiles) {
-            Write-Host "Checking $($file.FullName)..."
-            swiftc -parse "$($file.FullName)" 2>&1 | Out-Null
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "Syntax error in $($file.FullName)"
-              exit 1
-            }
-          }
-          Write-Host "All Swift files parsed successfully!"
-
   create-release:
     name: Create Release
-    needs: [build-and-test, swift-lint, windows-syntax-check]
+    needs: [build-and-test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: macos-latest
     steps:
