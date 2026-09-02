@@ -97,7 +97,7 @@ jobs:
       - name: Install Swift
         uses: swift-actions/setup-swift@v2
         with:
-          swift-version: 'latest'
+          swift-version: '6.0'
       - name: Check Swift syntax
         run: |
           # Parse all Swift files to verify syntax
