@@ -21,6 +21,20 @@
                ReferencedContainer = "container:AirWhisperTrain.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "4B14544530442C2400EB1DC6"
+               BuildableName = "AirWhisperTrainTests.xctest"
+               BlueprintName = "AirWhisperTrainTests"
+               ReferencedContainer = "container:AirWhisperTrain.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -30,6 +44,15 @@
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
       <Testables>
+         <TestableReference skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "4B14544530442C2400EB1DC6"
+               BuildableName = "AirWhisperTrainTests.xctest"
+               BlueprintName = "AirWhisperTrainTests"
+               ReferencedContainer = "container:AirWhisperTrain.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <MacroExpansion>
          <BuildableReference
