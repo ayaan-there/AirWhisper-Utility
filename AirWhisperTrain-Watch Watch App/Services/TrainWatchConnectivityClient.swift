@@ -146,7 +146,7 @@ final class TrainWatchConnectivityClient: NSObject, ObservableObject {
     }
 
     private func handleSendFailure(messageId: UUID, error: Error) {
-        guard var pending = pendingMessages[messageId] else { return }
+        guard let pending = pendingMessages[messageId] else { return }
 
         print("TrainWatch: send failed (attempt \(pending.retryCount + 1)/\(maxRetries)): \(error)")
 
@@ -177,7 +177,7 @@ final class TrainWatchConnectivityClient: NSObject, ObservableObject {
     }
 
     private func retrySend(messageId: UUID, retryCount: Int) async {
-        guard var pending = pendingMessages[messageId] else { return }
+        guard let pending = pendingMessages[messageId] else { return }
         let session = WCSession.default
 
         guard session.isReachable else {

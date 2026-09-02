@@ -58,7 +58,7 @@ struct ContentView: View {
             .toolbar {
                 if selectedMode != nil {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Close") {
+                        Button {
                             if trainViewModel.isRecording { trainViewModel.stopRecording() }
                             if testViewModel.isRecording { testViewModel.stopRecording() }
                             selectedMode = nil
@@ -79,7 +79,7 @@ struct ContentView: View {
                 }
             }
             .onReceive(connectivity.$currentLetter) { letter in
-                if selectedMode == .train {
+                if selectedMode == .train, let letter {
                     trainViewModel.updateLetter(letter)
                 }
             }
