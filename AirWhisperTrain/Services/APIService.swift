@@ -244,7 +244,10 @@ final class APIService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let (data, response) = try await session.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        guard 200..<300 ~= httpResponse.statusCode else {
             let msg = String(data: data, encoding: .utf8) ?? "Unknown error"
             throw APIError.serverError(httpResponse.statusCode, msg)
         }
@@ -271,7 +274,10 @@ final class APIService {
         request.setValue("Bearer \(adminToken)", forHTTPHeaderField: "Authorization")
 
         let (data, response) = try await session.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        guard 200..<300 ~= httpResponse.statusCode else {
             let msg = String(data: data, encoding: .utf8) ?? "Unknown error"
             throw APIError.serverError(httpResponse.statusCode, msg)
         }

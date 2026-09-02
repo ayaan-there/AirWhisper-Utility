@@ -49,7 +49,7 @@ enum IMUCSVImporter {
             samples: samples,
             rows: finalRows.count,
             duration: duration,
-            sampleRateHz: (1.0 / medianDt(finalRows)).rateOne,
+            sampleRateHz: rateHz,
             fileName: fileName
         )
     }
@@ -322,7 +322,7 @@ enum IMUCSVImporter {
 extension IMUCSVImporter {
     /// Preprocess a raw IMU CSV zip file into the 15-feature format expected by the server.
     /// Returns a flat Float32 array of 384 * 15 = 5760 elements ready for JSON upload.
-    /// 
+    ///
     /// Note: This version uses the system `unzip` command (available on iOS).
     /// For production, consider adding ZIPFoundation via SPM for robust ZIP handling.
     static func preprocessZipToFeatures(zipURL: URL) throws -> [Float] {
@@ -362,14 +362,32 @@ extension IMUCSVImporter {
             throw ParseError(message: "No valid samples after preprocessing")
         }
 
-        // Convert to feature matrix [T, 15]
-        let features = samples.map { sample in
-            [
-                sample.rotationRateX, sample.rotationRateY, sample.rotationRateZ,
-                sample.accelerationWorldX, sample.accelerationWorldY, sample.accelerationWorldZ,
-                sample.gyroEnergy, sample.accEnergy, sample.energyProgress,
-                sample.deltaRotationRateX, sample.deltaRotationRateY, sample.deltaRotationRateZ,
-                sample.deltaAccelerationWorldX, sample.deltaAccelerationWorldY, sample.deltaAccelerationWorldZ
+        // Convert to feature matrix [T, 15] using existing MotionSample methods
+        let features = samples.enumerated().map { i, sample in
+            let worldAccel = sample.accelerationWorld()
+            let prevSample = i > 0 ? samples[i - 1] : nil
+            
+            let deltaGyro: SIMD3<Double>
+            let deltaAccelWorld: SIMD3<Double>
+            
+            if let prev = prevSample {
+                let prevWorldAccel = prev.accelerationWorld()
+                deltaGyro = sample.rotationRate - prev.rotationRate
+                deltaAccelWorld = worldAccel - prevWorldAccel
+            } else {
+                deltaGyro = .zero
+                deltaAccelWorld = .zero
+            }
+            
+            let progress = samples.count > 1 ? Float(i) / Float(samples.count - 1) : 0.5
+            let accEnergy = sample.accEnergy(worldAccel: worldAccel)
+
+            return [
+                Float(sample.rotationRateX), Float(sample.rotationRateY), Float(sample.rotationRateZ),
+                Float(worldAccel.x), Float(worldAccel.y), Float(worldAccel.z),
+                Float(sample.gyroEnergy), Float(accEnergy), Float(progress),
+                Float(deltaGyro.x), Float(deltaGyro.y), Float(deltaGyro.z),
+                Float(deltaAccelWorld.x), Float(deltaAccelWorld.y), Float(deltaAccelWorld.z)
             ]
         }
 
