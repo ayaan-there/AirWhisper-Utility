@@ -40,11 +40,13 @@ jobs:
 
       - name: Build watchOS App
         run: |
+          WATCH_UDID=$(xcrun simctl list devices available | awk '/^-- watchOS 26.5 --/{in_watch=1; next} /^--/{in_watch=0} in_watch && /Apple Watch/ {print; exit}' | sed -n 's/.*(\([0-9A-F-]\{36\}\)).*/\1/p')
+          test -n "$WATCH_UDID"
           set -o pipefail
           xcodebuild build \
             -project AirWhisperTrain.xcodeproj \
             -scheme 'AirWhisperTrain-Watch Watch App' \
-            -destination 'platform=watchOS Simulator,name=Apple Watch Series 11 (46mm),OS=latest' \
+            -destination "platform=watchOS Simulator,id=$WATCH_UDID" \
             -configuration Debug \
             ONLY_ACTIVE_ARCH=YES \
             CODE_SIGNING_ALLOWED=NO \
