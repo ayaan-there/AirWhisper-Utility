@@ -84,19 +84,6 @@ jobs:
           path: ~/Library/Logs/DiagnosticReports/
           retention-days: 7
 
-  swift-lint:
-    name: SwiftLint (advisory)
-    runs-on: macos-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install SwiftLint
-        run: |
-          export HOMEBREW_NO_REQUIRE_TAP_TRUST=1
-          brew install swiftlint
-      - name: Run SwiftLint
-        run: swiftlint lint --strict .
-
   create-release:
     name: Create Release
     needs: [build-and-test]
