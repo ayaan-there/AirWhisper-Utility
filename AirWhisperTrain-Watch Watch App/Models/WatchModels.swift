@@ -26,5 +26,9 @@ struct TopPrediction: Codable {
 }
 
 struct AppConfig {
-    static let serverBaseURL = "http://127.0.0.1:8001"
+    static let serverBaseURL = "https://api.airwhisper.in"
+    static let cloudflareAccessClientId =
+        Bundle.main.object(forInfoDictionaryKey: "AirWhisperCloudflareAccessClientId") as? String ?? ""
+    static let cloudflareAccessClientSecret =
+        Bundle.main.object(forInfoDictionaryKey: "AirWhisperCloudflareAccessClientSecret") as? String ?? ""
 }

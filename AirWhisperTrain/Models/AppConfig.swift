@@ -11,5 +11,12 @@ struct AppConfig {
     static let adminToken = "change-me-in-production"
 
     /// Server base URL.
-    static let serverBaseURL = "http://127.0.0.1:8001"
+    static let serverBaseURL = "https://api.airwhisper.in"
+
+    /// Cloudflare Access service-token credentials.
+    /// Values are supplied through the local, git-ignored xcconfig override.
+    static let cloudflareAccessClientId =
+        Bundle.main.object(forInfoDictionaryKey: "AirWhisperCloudflareAccessClientId") as? String ?? ""
+    static let cloudflareAccessClientSecret =
+        Bundle.main.object(forInfoDictionaryKey: "AirWhisperCloudflareAccessClientSecret") as? String ?? ""
 }

@@ -8,6 +8,7 @@ DerivedData/
 *.xcuserstate
 project.xcworkspace/
 xcuserdata/
+Config/CloudflareAccess.local.xcconfig
 
 # macOS
 .DS_Store

@@ -1,0 +1,4 @@
+// Non-secret defaults. Put real values in CloudflareAccess.local.xcconfig.
+CLOUDFLARE_ACCESS_CLIENT_ID =
+CLOUDFLARE_ACCESS_CLIENT_SECRET =
+#include? "CloudflareAccess.local.xcconfig"

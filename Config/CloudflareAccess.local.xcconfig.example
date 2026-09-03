@@ -1,0 +1,4 @@
+// Copy this file to CloudflareAccess.local.xcconfig and fill in the values.
+// Never commit the copied file or the service-token secret.
+CLOUDFLARE_ACCESS_CLIENT_ID = YOUR_CLOUDFLARE_ACCESS_CLIENT_ID
+CLOUDFLARE_ACCESS_CLIENT_SECRET = YOUR_CLOUDFLARE_ACCESS_CLIENT_SECRET

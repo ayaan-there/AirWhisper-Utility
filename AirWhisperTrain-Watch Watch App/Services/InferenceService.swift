@@ -14,10 +14,20 @@ final class InferenceService {
         decoder.dateDecodingStrategy = .iso8601
     }
 
+    private func addCloudflareAccessHeaders(to request: inout URLRequest) {
+        if !AppConfig.cloudflareAccessClientId.isEmpty {
+            request.setValue(AppConfig.cloudflareAccessClientId, forHTTPHeaderField: "CF-Access-Client-Id")
+        }
+        if !AppConfig.cloudflareAccessClientSecret.isEmpty {
+            request.setValue(AppConfig.cloudflareAccessClientSecret, forHTTPHeaderField: "CF-Access-Client-Secret")
+        }
+    }
+
     func predict(features: [Float]) async throws -> PredictResponse {
         let url = URL(string: "\(baseURL)/predict")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        addCloudflareAccessHeaders(to: &request)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let payload = PredictRequest(features: features, metadata: nil)

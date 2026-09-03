@@ -19,6 +19,18 @@ final class APIService {
         decoder.dateDecodingStrategy = .iso8601
     }
 
+    /// Adds the Cloudflare Access service-token headers to an app request.
+    /// Empty values are intentionally omitted so development builds remain usable
+    /// before the protected Access policy is enabled.
+    private func addCloudflareAccessHeaders(to request: inout URLRequest) {
+        if !AppConfig.cloudflareAccessClientId.isEmpty {
+            request.setValue(AppConfig.cloudflareAccessClientId, forHTTPHeaderField: "CF-Access-Client-Id")
+        }
+        if !AppConfig.cloudflareAccessClientSecret.isEmpty {
+            request.setValue(AppConfig.cloudflareAccessClientSecret, forHTTPHeaderField: "CF-Access-Client-Secret")
+        }
+    }
+
     // MARK: - Error Types
 
     enum APIError: LocalizedError {
@@ -61,6 +73,7 @@ final class APIService {
         let url = URL(string: "\(Self.baseURL)/samples")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        addCloudflareAccessHeaders(to: &request)
 
         let boundary = "Boundary-\(UUID().uuidString)"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
@@ -116,6 +129,7 @@ final class APIService {
         let url = URL(string: "\(Self.baseURL)/predict")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        addCloudflareAccessHeaders(to: &request)
 
         let boundary = "Boundary-\(UUID().uuidString)"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
@@ -148,7 +162,9 @@ final class APIService {
     /// Fetch per-class sample counts from the server.
     func fetchServerCounts() async throws -> ServerCountsResponse {
         let url = URL(string: "\(Self.baseURL)/samples/counts")!
-        let (data, response) = try await session.data(from: url)
+        var request = URLRequest(url: url)
+        addCloudflareAccessHeaders(to: &request)
+        let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
             throw APIError.invalidResponse
         }
@@ -160,7 +176,9 @@ final class APIService {
     /// Fetch current training status (epoch, loss, val_acc, ETA).
     func fetchTrainingStatus() async throws -> TrainStatusResponse {
         let url = URL(string: "\(Self.baseURL)/train/status")!
-        let (data, response) = try await session.data(from: url)
+        var request = URLRequest(url: url)
+        addCloudflareAccessHeaders(to: &request)
+        let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
             throw APIError.invalidResponse
         }
@@ -172,7 +190,9 @@ final class APIService {
     /// Fetch current training configuration.
     func fetchConfig() async throws -> TrainConfig {
         let url = URL(string: "\(Self.baseURL)/config")!
-        let (data, response) = try await session.data(from: url)
+        var request = URLRequest(url: url)
+        addCloudflareAccessHeaders(to: &request)
+        let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
             throw APIError.invalidResponse
         }
@@ -183,6 +203,7 @@ final class APIService {
     func updateConfig(_ config: TrainConfig, adminToken: String) async throws {
         var request = URLRequest(url: URL(string: "\(Self.baseURL)/config")!)
         request.httpMethod = "PUT"
+        addCloudflareAccessHeaders(to: &request)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(adminToken)", forHTTPHeaderField: "Authorization")
         request.httpBody = try encoder.encode(ConfigUpdate(config: config))
@@ -198,6 +219,7 @@ final class APIService {
     func triggerTraining(adminToken: String) async throws {
         var request = URLRequest(url: URL(string: "\(Self.baseURL)/train/trigger")!)
         request.httpMethod = "POST"
+        addCloudflareAccessHeaders(to: &request)
         request.setValue("Bearer \(adminToken)", forHTTPHeaderField: "Authorization")
 
         let (_, response) = try await session.data(for: request)
@@ -210,7 +232,9 @@ final class APIService {
 
     func checkTriggerConditions() async throws -> TriggerCheckResponse {
         let url = URL(string: "\(Self.baseURL)/trigger/check")!
-        let (data, response) = try await session.data(from: url)
+        var request = URLRequest(url: url)
+        addCloudflareAccessHeaders(to: &request)
+        let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
             throw APIError.invalidResponse
         }
@@ -233,6 +257,7 @@ final class APIService {
         let url = URL(string: "\(Self.baseURL)/samples/preprocessed")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        addCloudflareAccessHeaders(to: &request)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let payload = PreprocessedSamplePayload(
@@ -271,6 +296,7 @@ final class APIService {
         let url = URL(string: "\(Self.baseURL)/samples/\(letter.uppercased())/\(sampleId)")!
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
+        addCloudflareAccessHeaders(to: &request)
         request.setValue("Bearer \(adminToken)", forHTTPHeaderField: "Authorization")
 
         let (data, response) = try await session.data(for: request)
